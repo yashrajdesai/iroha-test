@@ -6,99 +6,115 @@ import {
 } from 'iroha-helpers/lib/proto/endpoint_grpc_pb'
 import queries from 'iroha-helpers/lib/queries';
 import { commands } from 'iroha-helpers';
+const IROHA_ADDRESS = 'localhost:50051'
 
-const IROHA_ADDRESS = 'localhost:55552';
-
-let certificate = fs.readFileSync("server.crt");
-
-const sslCred = grpc.credentials.createSsl(certificate);
-
-// const sslCred = grpc.credentials.createInsecure();
+const adminPriv =
+  'f101537e319568c765b2cc89698325604991dca57b9716b58016b253506cab70'
 
 const commandService = new CommandService(
   IROHA_ADDRESS,
-  sslCred
+  grpc.credentials.createInsecure()
 )
 
 const queryService = new QueryService(
   IROHA_ADDRESS,
-  sslCred
+  grpc.credentials.createInsecure()
 )
-const adminPriv =
-  'f101537e319568c765b2cc89698325604991dca57b9716b58016b253506cab70';
+
+queries.fetchCommits(
+  {
+    privateKey: adminPriv,
+    creatorAccountId: 'admin@test',
+    queryService,
+    timeoutLimit: 5000
+  },
+  (block) => console.log('fetchCommits new block:', block),
+  (error) => console.error('fetchCommits failed:', error.stack)
+)
 
 Promise.all([
-    commands.createAsset({
-        privateKeys: [adminPriv],
-        creatorAccountId: 'admin@test',
-        quorum: 1,
-        commandService,
-        timeoutLimit: 5000
-      }, {
-        assetName: 'acoin',
-        domainId: 'test',
-        precision: 0
-    }),
-    // commands.addAssetQuantity({
-    //     privateKeys: [adminPriv],
-    //     creatorAccountId: 'admin@test',
-    //     quorum: 1,
-    //     commandService,
-    //     timeoutLimit: 5000
-    //   }, {
-    //     assetId: 'testcoin#test',
-    //     amount: 500,
-    // }),
-    // commands.createAccount({
-    //     privateKeys: [adminPriv],
-    //     creatorAccountId: 'admin@test',
-    //     quorum: 1,
-    //     commandService,
-    //     timeoutLimit: 5000
-    //   }, {
-    //     accountName: "test_account",
-    //     domainId: "test",
-    //     publicKey: "407e57f50ca48969b08ba948171bb2435e035d82cec417e18e4a38f5fb113f83"
-    // }),
-    // queries.getAccountAssets({
-    //     privateKey: adminPriv,
-    //     creatorAccountId: 'admin@test',
-    //     queryService,
-    //     timeoutLimit: 5000
-    //   }, {
-    //     accountId: 'admin@test',
-    //     pageSize: 100,
-    //     firstAssetId: "coolcoin#test"
-    //   }),
-      // queries.getAccountTransactions({
-      //   privateKey: adminPriv,
-      //   creatorAccountId: 'admin@test',
-      //   queryService,
-      //   timeoutLimit: 5000
-      // }, {
-      //   accountId: 'admin@test',
-      //   pageSize: 5,
-      //   firstTxHash: undefined,
-      //   firstTxTime: undefined,
-      //   lastTxTime: undefined,
-      //   firstTxHeight: undefined,
-      //   lastTxHeight: undefined,
-      //   ordering: {
-      //     field: undefined,
-      //     direction: undefined
-      //   }
-      // }),
-    // queries.getBlock({
-    //   privateKey: adminPriv,
-    //   creatorAccountId: 'admin@test',
-    //   queryService,
-    //   timeoutLimit: 5000
-    // }, {
-    //   height: 2
-    // }),
-  ])
-    .then( (a) => {
-        console.log(JSON.stringify(a));
+  commands.setAccountDetail({
+    privateKeys: [adminPriv],
+    creatorAccountId: 'admin@test',
+    quorum: 1,
+    commandService,
+    timeoutLimit: 5000
+  }, {
+    accountId: 'admin@test',
+    key: 'jason',
+    value: 'statham'
+  }),
+  queries.getAccount({
+    privateKey: adminPriv,
+    creatorAccountId: 'admin@test',
+    queryService,
+    timeoutLimit: 5000
+  }, {
+    accountId: 'admin@test'
+  }),
+  queries.getAccountDetail({
+    privateKey: adminPriv,
+    creatorAccountId: 'admin@test',
+    queryService,
+    timeoutLimit: 5000
+  }, {
+    accountId: 'admin@test',
+    key: 'jason',
+    writer: 'admin@test',
+    pageSize: 1,
+    paginationKey: 'jason',
+    paginationWriter: 'admin@test'
+  }),
+  queries.getSignatories({
+    privateKey: adminPriv,
+    creatorAccountId: 'admin@test',
+    queryService,
+    timeoutLimit: 5000
+  }, {
+    accountId: 'admin@test'
+  }),
+  queries.getRoles({
+    privateKey: adminPriv,
+    creatorAccountId: 'admin@test',
+    queryService,
+    timeoutLimit: 5000
+  }),
+  queries.getAccount({
+    privateKey: adminPriv,
+    creatorAccountId: 'admin@test',
+    queryService,
+    timeoutLimit: 5000
+  }, {
+    accountId: 'admin@test'
+  }),
+  queries.getAccountTransactions({
+    privateKey: adminPriv,
+    creatorAccountId: 'admin@test',
+    queryService,
+    timeoutLimit: 5000
+  }, {
+    accountId: 'admin@test',
+    pageSize: 5,
+    firstTxHash: undefined,
+    firstTxTime: undefined,
+    lastTxTime: undefined,
+    firstTxHeight: undefined,
+    lastTxHeight: undefined,
+    ordering: {
+      field: undefined,
+      direction: undefined
     }
-    )
-    .catch(e => console.error(e))
+  }),
+  queries.getAccountAssets({
+    privateKey: adminPriv,
+    creatorAccountId: 'admin@test',
+    queryService,
+    timeoutLimit: 5000
+  }, {
+    accountId: 'admin@test',
+    pageSize: 100,
+    firstAssetId: undefined
+  })
+])
+  .then(a => console.log(a))
+  .catch(e => console.error(e))
